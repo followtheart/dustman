@@ -9,6 +9,15 @@ import '../../domain/scanners/residue_scanner.dart';
 
 enum ResidueStatus { idle, scanning, scanned, cleaning, reported, error }
 
+enum ResidueSort {
+  defaultOrder('默认'),
+  sizeDesc('按大小 ↓'),
+  sizeAsc('按大小 ↑');
+
+  const ResidueSort(this.label);
+  final String label;
+}
+
 class ResidueProvider extends ChangeNotifier {
   ResidueProvider({
     required List<ResidueScanner> scanners,
@@ -32,6 +41,27 @@ class ResidueProvider extends ChangeNotifier {
     for (final k in ResidueKind.values) k: const [],
   };
   Map<ResidueKind, List<ResidueItem>> get itemsByKind => _items;
+
+  ResidueSort _sort = ResidueSort.sizeDesc;
+  ResidueSort get sort => _sort;
+
+  void setSort(ResidueSort value) {
+    if (_sort == value) return;
+    _sort = value;
+    notifyListeners();
+  }
+
+  List<ResidueItem> itemsSortedBy(ResidueKind kind) {
+    final list = _items[kind] ?? const <ResidueItem>[];
+    if (_sort == ResidueSort.defaultOrder || list.length < 2) return list;
+    final copy = [...list];
+    copy.sort(
+      (a, b) => _sort == ResidueSort.sizeDesc
+          ? b.size.compareTo(a.size)
+          : a.size.compareTo(b.size),
+    );
+    return copy;
+  }
 
   /// 选中状态：id → bool。
   final Map<String, bool> _selected = {};

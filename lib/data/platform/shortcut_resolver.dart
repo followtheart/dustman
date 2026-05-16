@@ -104,12 +104,16 @@ class ShortcutResolver {
           calloc.free(wdBuf);
         }
       } finally {
+        // win32 >=5.6 IUnknown attaches a Finalizer that auto-releases on GC;
+        // must detach before manual release() to avoid use-after-free crash.
+        pf.detach();
         pf.release();
       }
     } catch (e, st) {
       AppLogger.warn('resolve $lnkPath failed: $e\n$st', tag: 'Shortcut');
       return null;
     } finally {
+      link.detach();
       link.release();
     }
   }
