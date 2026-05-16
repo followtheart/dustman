@@ -8,6 +8,11 @@ class InstalledProgram {
     this.publisher,
     this.installLocation,
     this.systemComponent = false,
+    this.uninstallString,
+    this.quietUninstallString,
+    this.displayVersion,
+    this.installDate,
+    this.estimatedSizeKb,
   });
 
   final String displayName;
@@ -21,6 +26,41 @@ class InstalledProgram {
 
   /// `SystemComponent=1` 标识由 Windows 安装的"系统组件"，扫描时整体忽略。
   final bool systemComponent;
+
+  /// 卸载命令（含参数）。来自 `UninstallString`。
+  final String? uninstallString;
+
+  /// 静默卸载命令；存在时优先用于命令行模式。
+  final String? quietUninstallString;
+
+  /// `DisplayVersion`。
+  final String? displayVersion;
+
+  /// `InstallDate` 原始字符串（一般是 `YYYYMMDD`）。
+  final String? installDate;
+
+  /// `EstimatedSize`（单位 KB）。null 表示未提供。
+  final int? estimatedSizeKb;
+
+  /// 估算字节数。
+  int? get estimatedBytes =>
+      estimatedSizeKb == null ? null : estimatedSizeKb! * 1024;
+
+  /// 解析后的安装日期（仅 `YYYYMMDD` 形式有效）。
+  DateTime? get installDateTime {
+    final s = installDate;
+    if (s == null || s.length != 8) return null;
+    final y = int.tryParse(s.substring(0, 4));
+    final m = int.tryParse(s.substring(4, 6));
+    final d = int.tryParse(s.substring(6, 8));
+    if (y == null || m == null || d == null) return null;
+    if (m < 1 || m > 12 || d < 1 || d > 31) return null;
+    try {
+      return DateTime(y, m, d);
+    } on ArgumentError {
+      return null;
+    }
+  }
 
   /// 用于模糊匹配的小写、去空格、去标点 key。
   late final String matchKey = _normalize(displayName);

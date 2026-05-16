@@ -64,6 +64,11 @@ class InstalledProgramsRepository {
 
           final publisher = sub.readString('Publisher');
           final installLoc = sub.readString('InstallLocation');
+          final uninstall = sub.readString('UninstallString');
+          final quietUninstall = sub.readString('QuietUninstallString');
+          final version = sub.readString('DisplayVersion');
+          final installDate = sub.readString('InstallDate');
+          final estimatedSize = sub.readDword('EstimatedSize');
 
           out.add(InstalledProgram(
             displayName: displayName,
@@ -71,6 +76,11 @@ class InstalledProgramsRepository {
             installLocation: _normalizeLocation(installLoc),
             registryKeyPath: sub.fullPath,
             systemComponent: sysComp != 0,
+            uninstallString: _emptyToNull(uninstall),
+            quietUninstallString: _emptyToNull(quietUninstall),
+            displayVersion: _emptyToNull(version),
+            installDate: _emptyToNull(installDate),
+            estimatedSizeKb: estimatedSize == 0 ? null : estimatedSize,
           ));
         } finally {
           sub.close();
@@ -79,6 +89,12 @@ class InstalledProgramsRepository {
     } finally {
       root0.close();
     }
+  }
+
+  static String? _emptyToNull(String? raw) {
+    if (raw == null) return null;
+    final t = raw.trim();
+    return t.isEmpty ? null : t;
   }
 
   static String? _normalizeLocation(String? raw) {
