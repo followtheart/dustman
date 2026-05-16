@@ -61,20 +61,26 @@ class RegKey {
   bool _closed = false;
 
   /// 打开一个键。失败返回 null。
+  ///
+  /// 默认只申请 [KEY_READ]；若调用方需要 `deleteValue` / `deleteSubTree`，
+  /// 须传 `writable: true`，否则 Windows 会以 5 (Access Denied) 拒绝写入。
   static RegKey? open(
     RegRoot root,
     String subKey, {
     RegView view = RegView.v64,
+    bool writable = false,
   }) {
     if (!Platform.isWindows) return null;
     final lp = subKey.toNativeUtf16();
     final phk = calloc<HANDLE>();
     try {
+      final access = (writable ? KEY_READ | KEY_SET_VALUE : KEY_READ) |
+          view.flag;
       final rc = RegOpenKeyEx(
         root.handle,
         lp,
         0,
-        KEY_READ | view.flag,
+        access,
         phk,
       );
       if (rc != ERROR_SUCCESS) {
@@ -285,6 +291,71 @@ class RegKey {
 
   /// 公开版本。
   (int, int, DateTime)? queryInfo() => _queryInfo();
+
+  /// 枚举该键直接挂载的全部 (valueName, valueType) 对。
+  /// 注意：默认值（空名称）会被跳过。
+  List<({String name, int type})> enumValues() {
+    if (!Platform.isWindows || _closed) return const [];
+    final out = <({String name, int type})>[];
+    const bufLen = 16384;
+    final nameBuf = calloc<Uint16>(bufLen).cast<Utf16>();
+    final nameLen = calloc<DWORD>();
+    final type = calloc<DWORD>();
+    var i = 0;
+    try {
+      while (true) {
+        nameLen.value = bufLen;
+        type.value = 0;
+        final rc = RegEnumValue(
+          _handle,
+          i,
+          nameBuf,
+          nameLen,
+          nullptr,
+          type,
+          nullptr,
+          nullptr,
+        );
+        if (rc == ERROR_NO_MORE_ITEMS) break;
+        if (rc != ERROR_SUCCESS) {
+          AppLogger.debug(
+            'RegEnumValue rc=$rc at $fullPath[$i]',
+            tag: 'RegistryReader',
+          );
+          break;
+        }
+        final name = nameBuf.toDartString();
+        if (name.isNotEmpty) {
+          out.add((name: name, type: type.value));
+        }
+        i++;
+      }
+    } finally {
+      calloc.free(nameBuf);
+      calloc.free(nameLen);
+      calloc.free(type);
+    }
+    return out;
+  }
+
+  /// 删除该键下名为 [valueName] 的值。返回是否成功。
+  bool deleteValue(String valueName) {
+    if (!Platform.isWindows || _closed) return false;
+    final lp = valueName.toNativeUtf16();
+    try {
+      final rc = RegDeleteValue(_handle, lp);
+      if (rc != ERROR_SUCCESS) {
+        AppLogger.warn(
+          'RegDeleteValue($fullPath\\$valueName) rc=$rc',
+          tag: 'RegistryReader',
+        );
+        return false;
+      }
+      return true;
+    } finally {
+      free(lp);
+    }
+  }
 
   /// 递归删除该键下名为 [name] 的子键。
   /// 返回是否成功；常见失败原因：权限不足、键不存在、键被占用。

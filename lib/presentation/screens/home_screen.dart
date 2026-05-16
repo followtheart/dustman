@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/sidebar_nav.dart';
+import 'duplicate_files_screen.dart';
 import 'junk_clean_screen.dart';
+import 'large_file_screen.dart';
 import 'placeholder_screen.dart';
 import 'settings_screen.dart';
+import 'startup_manager_screen.dart';
 import 'uninstall_residue_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -33,6 +36,16 @@ class _HomeScreenState extends State<HomeScreen> {
       label: '大文件查找',
     ),
     NavDestinationItem(
+      icon: Icons.content_copy_outlined,
+      selectedIcon: Icons.content_copy,
+      label: '重复文件',
+    ),
+    NavDestinationItem(
+      icon: Icons.power_settings_new_outlined,
+      selectedIcon: Icons.power_settings_new,
+      label: '启动项',
+    ),
+    NavDestinationItem(
       icon: Icons.pie_chart_outline,
       selectedIcon: Icons.pie_chart,
       label: '磁盘分析',
@@ -49,10 +62,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final screens = <Widget>[
       const JunkCleanScreen(),
       const UninstallResidueScreen(),
-      const PlaceholderScreen(
-        title: '大文件查找',
-        message: '即将上线：递归扫描指定目录，按文件大小排序定位"空间大户"。',
-      ),
+      const LargeFileScreen(),
+      const DuplicateFilesScreen(),
+      const StartupManagerScreen(),
       const PlaceholderScreen(
         title: '磁盘分析',
         message: '即将上线：以 TreeMap 可视化每个目录的占用比例。',
