@@ -8,6 +8,7 @@ import 'data/scanners/recycle_bin_scanner.dart';
 import 'data/scanners/temp_files_scanner.dart';
 import 'data/scanners/thumbnail_cache_scanner.dart';
 import 'data/scanners/windows_logs_scanner.dart';
+import 'domain/scanners/junk_scanner.dart';
 import 'presentation/providers/scan_provider.dart';
 import 'presentation/providers/theme_provider.dart';
 import 'presentation/screens/home_screen.dart';
@@ -17,7 +18,7 @@ class DustmanApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scanners = [
+    final scanners = <JunkScanner>[
       TempFilesScanner(),
       BrowserCacheScanner(),
       WindowsLogsScanner(),

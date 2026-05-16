@@ -17,7 +17,7 @@ class AppTheme {
       colorScheme: scheme,
       useMaterial3: true,
       visualDensity: VisualDensity.standard,
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),

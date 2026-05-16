@@ -14,6 +14,9 @@ class BrowserCacheScanner with DirectoryScannerMixin implements JunkScanner {
   JunkCategoryType get type => JunkCategoryType.browserCache;
 
   @override
+  bool get requiresElevation => false;
+
+  @override
   Stream<JunkItem> scan() async* {
     final roots = <String>[];
 

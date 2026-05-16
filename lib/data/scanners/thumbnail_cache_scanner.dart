@@ -10,6 +10,9 @@ class ThumbnailCacheScanner with DirectoryScannerMixin implements JunkScanner {
   JunkCategoryType get type => JunkCategoryType.thumbnailCache;
 
   @override
+  bool get requiresElevation => false;
+
+  @override
   Stream<JunkItem> scan() => scanDirectories(
         [WindowsPaths.thumbnailCacheDir],
         type,
