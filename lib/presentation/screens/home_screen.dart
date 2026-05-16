@@ -4,6 +4,7 @@ import '../widgets/sidebar_nav.dart';
 import 'junk_clean_screen.dart';
 import 'placeholder_screen.dart';
 import 'settings_screen.dart';
+import 'uninstall_residue_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -47,10 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final screens = <Widget>[
       const JunkCleanScreen(),
-      const PlaceholderScreen(
-        title: '卸载残留',
-        message: '即将上线：扫描已卸载程序遗留的目录与注册表项。',
-      ),
+      const UninstallResidueScreen(),
       const PlaceholderScreen(
         title: '大文件查找',
         message: '即将上线：递归扫描指定目录，按文件大小排序定位"空间大户"。',
