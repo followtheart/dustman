@@ -6,6 +6,8 @@ import 'package:win32/win32.dart';
 
 import '../../core/utils/logger.dart';
 
+const _slgpRawPath = 0x0004;
+
 class ShortcutInfo {
   ShortcutInfo({
     required this.lnkPath,
@@ -77,7 +79,7 @@ class ShortcutResolver {
             targetBuf,
             bufLen,
             nullptr,
-            SLGP_RAWPATH,
+            _slgpRawPath,
           );
           link.getArguments(argsBuf, bufLen);
           link.getWorkingDirectory(wdBuf, bufLen);
