@@ -234,7 +234,14 @@ class RegKey {
     final data = calloc<DWORD>();
     final size = calloc<DWORD>()..value = sizeOf<DWORD>();
     try {
-      final rc = RegQueryValueEx(_handle, lpName, nullptr, type, data, size);
+      final rc = RegQueryValueEx(
+        _handle,
+        lpName,
+        nullptr,
+        type,
+        data.cast<Uint8>(),
+        size,
+      );
       if (rc != ERROR_SUCCESS) return null;
       if (type.value != REG_DWORD) return null;
       return data.value;
