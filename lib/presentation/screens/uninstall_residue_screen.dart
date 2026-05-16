@@ -331,7 +331,7 @@ class _KindList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = provider.itemsByKind[kind] ?? const <ResidueItem>[];
+    final items = provider.itemsSortedBy(kind);
     if (items.isEmpty) {
       return Center(
         child: Text(
@@ -357,6 +357,21 @@ class _KindList extends StatelessWidget {
                 onPressed: () => provider.toggleAll(kind, false),
                 icon: const Icon(Icons.deselect, size: 18),
                 label: const Text('全不选'),
+              ),
+              const Spacer(),
+              const Icon(Icons.sort, size: 18),
+              const SizedBox(width: 4),
+              DropdownButton<ResidueSort>(
+                value: provider.sort,
+                isDense: true,
+                underline: const SizedBox.shrink(),
+                onChanged: (v) {
+                  if (v != null) provider.setSort(v);
+                },
+                items: [
+                  for (final s in ResidueSort.values)
+                    DropdownMenuItem(value: s, child: Text(s.label)),
+                ],
               ),
             ],
           ),
