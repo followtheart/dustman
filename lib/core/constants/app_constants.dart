@@ -2,7 +2,7 @@ class AppConstants {
   AppConstants._();
 
   static const appName = 'Dustman';
-  static const appVersion = '0.1.0';
+  static const appVersion = '0.3.0';
 
   /// 受保护路径关键字 —— 命中任意一个的绝对路径都禁止删除。
   /// 比较时统一转小写后做 contains 判断。
