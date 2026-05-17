@@ -1,6 +1,6 @@
 # Dustman
 
-> 一款安全、可视化的 Windows 桌面端垃圾清理工具。Flutter for Windows Desktop。
+> 一款安全、可视化的 Windows 桌面端垃圾清理工具。Flutter for Windows Desktop。未经授权不得用于商业用途
 
 清理 Windows 在日常使用中产生的临时文件、浏览器缓存、系统日志、缩略图缓存、
 回收站与 DNS 缓存。所有删除前都经过白名单二次校验，绝不动系统关键目录。
