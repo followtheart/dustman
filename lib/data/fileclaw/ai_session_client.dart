@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/logger.dart';
 import 'api_exception.dart';
+import 'fileclaw_logger.dart';
 import 'tool_runtime/tool_registry.dart';
 
 /// 端侧 AI 会话。生命周期与一次 ✦ 点击对应。
@@ -15,15 +16,20 @@ import 'tool_runtime/tool_registry.dart';
 ///   2) GET /ai/sessions/{id}/stream 订阅 SSE；
 ///   3) 收到 tool_call 帧 → 用 [ToolRegistry] 执行 → POST /ai/sessions/{id}/tool-result；
 ///   4) 收到 final / error → 通过 [events] 流出对应事件 → close。
+/// 写工具二次确认回调。返回 true=允许执行；false=用户拒绝。
+typedef ConsentResolver = Future<bool> Function(String tool, Map<String, Object?> args);
+
 class AiSessionClient {
   AiSessionClient({
     required this.baseUrl,
     required this.accessToken,
+    this.consentResolver,
     http.Client? httpClient,
   }) : _client = httpClient ?? http.Client();
 
   final String baseUrl;
   final String accessToken;
+  final ConsentResolver? consentResolver;
   final http.Client _client;
 
   final _events = StreamController<AiEvent>.broadcast();
@@ -179,12 +185,37 @@ class AiSessionClient {
     final needsConsent = frame['needs_user_consent'] as bool? ?? false;
 
     _events.add(AiEvent.toolStart(tool: tool, needsConsent: needsConsent));
+    FileClawLogger.writeEvent({
+      'session_id': _sessionId,
+      'event': 'tool_call',
+      'tool': tool,
+      'args': args,
+      'needs_consent': needsConsent,
+    });
 
     if (needsConsent) {
-      // M3 只有读工具，理论上走不到这里；M5 起接入二次确认。
-      _events.add(AiEvent.error('write tools require consent (not implemented in M3)'));
-      await _postResult(callId, ok: false, reason: 'user_consent_unsupported');
-      return;
+      final resolver = consentResolver;
+      if (resolver == null) {
+        FileClawLogger.writeEvent({
+          'session_id': _sessionId,
+          'event': 'consent_no_handler',
+          'tool': tool,
+        });
+        _events.add(AiEvent.error('no consent handler registered for write tools'));
+        await _postResult(callId, ok: false, reason: 'no_consent_handler');
+        return;
+      }
+      final approved = await resolver(tool, args);
+      FileClawLogger.writeEvent({
+        'session_id': _sessionId,
+        'event': approved ? 'consent_approved' : 'consent_declined',
+        'tool': tool,
+      });
+      if (!approved) {
+        _events.add(AiEvent.toolDone(tool: tool, ok: false));
+        await _postResult(callId, ok: false, reason: 'user_declined');
+        return;
+      }
     }
 
     final result = await ToolRegistry.instance.dispatch(tool, args);
@@ -192,6 +223,13 @@ class AiSessionClient {
     final data = ok ? result['data'] as Map<String, Object?>? : null;
     final reason = !ok ? result['reason'] as String? : null;
 
+    FileClawLogger.writeEvent({
+      'session_id': _sessionId,
+      'event': 'tool_result',
+      'tool': tool,
+      'ok': ok,
+      if (reason != null) 'reason': reason,
+    });
     _events.add(AiEvent.toolDone(tool: tool, ok: ok));
     await _postResult(callId, ok: ok, data: data, reason: reason);
   }

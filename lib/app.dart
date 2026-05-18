@@ -7,6 +7,8 @@ import 'core/theme/app_theme.dart';
 import 'data/fileclaw/auth_repository.dart';
 import 'data/fileclaw/auth_store.dart';
 import 'data/fileclaw/cloud_client.dart';
+import 'data/fileclaw/tool_runtime/filemcp_tools.dart';
+import 'data/fileclaw/tool_runtime/procmcp_tools.dart';
 import 'data/fileclaw/tool_runtime/regmcp_tools.dart';
 import 'data/scanners/browser_cache_scanner.dart';
 import 'data/scanners/dead_shortcut_scanner.dart';
@@ -105,8 +107,10 @@ class DustmanApp extends StatelessWidget {
     final repo = AuthRepository(client: client, store: store);
     final authProvider = AuthProvider(repo)..bootstrap();
 
-    // 注册端侧只读工具。重复调用幂等。
+    // 注册端侧工具（读 + 写都注册；写工具走二次确认）。重复调用幂等。
     registerRegMcpTools();
+    registerFileMcpTools();
+    registerProcMcpTools();
 
     return [
       ChangeNotifierProvider<AuthProvider>.value(value: authProvider),

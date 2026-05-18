@@ -15,6 +15,12 @@ class AiProvider extends ChangeNotifier {
   final String baseUrl;
   final String Function() accessTokenProvider;
 
+  /// UI 层注入的写工具二次确认实现。
+  ///
+  /// 由 [AiAnalysisPanel] 在显示时设置；面板关闭后清空。
+  /// 未设置时所有 needs_user_consent=true 的工具一律拒绝。
+  ConsentResolver? consentResolver;
+
   AiSessionClient? _active;
   StreamSubscription<AiEvent>? _sub;
 
@@ -57,6 +63,7 @@ class AiProvider extends ChangeNotifier {
     final client = AiSessionClient(
       baseUrl: baseUrl,
       accessToken: accessTokenProvider(),
+      consentResolver: consentResolver,
     );
     _active = client;
     _sub = client.events.listen(_handle);

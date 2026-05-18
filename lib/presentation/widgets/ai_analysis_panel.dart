@@ -7,7 +7,10 @@ import '../providers/ai_provider.dart';
 ///
 /// 作为 modal bottom sheet 弹出，订阅 [AiProvider] 状态实时刷新：
 /// 进度日志 → token 用量 → 最终结论 / 错误。
-class AiAnalysisPanel extends StatelessWidget {
+///
+/// 同时担任 [AiProvider.consentResolver] 的承载：展示期间任何写工具
+/// 调用都会弹端侧 AlertDialog 让用户决定；面板关闭后 resolver 清空。
+class AiAnalysisPanel extends StatefulWidget {
   const AiAnalysisPanel({super.key, required this.title});
 
   final String title;
@@ -29,6 +32,91 @@ class AiAnalysisPanel extends StatelessWidget {
   }
 
   @override
+  State<AiAnalysisPanel> createState() => _AiAnalysisPanelState();
+}
+
+class _AiAnalysisPanelState extends State<AiAnalysisPanel> {
+  @override
+  void initState() {
+    super.initState();
+    final ai = context.read<AiProvider>();
+    ai.consentResolver = _askConsent;
+  }
+
+  @override
+  void dispose() {
+    // 面板关闭后立刻清空，避免下一次会话误用
+    final ai = context.read<AiProvider>();
+    if (identical(ai.consentResolver, _askConsent)) {
+      ai.consentResolver = null;
+    }
+    super.dispose();
+  }
+
+  Future<bool> _askConsent(String tool, Map<String, Object?> args) async {
+    if (!mounted) return false;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber, color: Colors.orange),
+              SizedBox(width: 8),
+              Text('AI 请求执行写操作'),
+            ],
+          ),
+          content: SizedBox(
+            width: 360,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '工具：$tool',
+                  style: const TextStyle(fontFamily: 'monospace'),
+                ),
+                const SizedBox(height: 8),
+                const Text('参数：'),
+                Container(
+                  margin: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: SelectableText(
+                    args.toString(),
+                    style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  '此操作不可撤销前已 AI 引导。删除走回收站，启动项可重新启用；'
+                  '但请确认操作目标确实是你想动的。',
+                  style: Theme.of(ctx).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('拒绝'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('允许执行'),
+            ),
+          ],
+        );
+      },
+    );
+    return confirmed ?? false;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Consumer<AiProvider>(
       builder: (context, ai, _) {
@@ -43,7 +131,7 @@ class AiAnalysisPanel extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      title,
+                      widget.title,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
