@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/edition.dart';
 import '../../core/utils/file_size_formatter.dart';
 import '../../domain/entities/duplicate_group.dart';
 import '../providers/duplicate_provider.dart';
+import '../widgets/ai_action_button.dart';
 
 class DuplicateFilesScreen extends StatefulWidget {
   const DuplicateFilesScreen({super.key});
@@ -44,6 +46,14 @@ class _DuplicateFilesScreenState extends State<DuplicateFilesScreen> {
                   label: const Text('开始扫描'),
                 ),
               const SizedBox(width: 8),
+              if (kIsPro)
+                IconButton(
+                  tooltip: 'AI 挑出可删的副本',
+                  icon: const Icon(Icons.auto_awesome_outlined),
+                  onPressed: provider.groups.isEmpty
+                      ? null
+                      : () => _runAiOnFirstGroup(context, provider),
+                ),
               FilledButton.tonalIcon(
                 onPressed: (provider.selectedCount == 0 ||
                         provider.status == DuplicateStatus.scanning ||
@@ -88,6 +98,22 @@ class _DuplicateFilesScreenState extends State<DuplicateFilesScreen> {
       return;
     }
     provider.scan(roots);
+  }
+
+  Future<void> _runAiOnFirstGroup(
+    BuildContext context,
+    DuplicateProvider provider,
+  ) async {
+    final group = provider.groups.first;
+    await runAiAnalysis(
+      context,
+      intent: 'pick_dup_to_delete',
+      title: 'AI 挑出可删的副本',
+      ctx: {
+        'size': group.size,
+        'paths': group.paths,
+      },
+    );
   }
 
   Future<void> _confirmAndClean(

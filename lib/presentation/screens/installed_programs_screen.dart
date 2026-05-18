@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/edition.dart';
 import '../../core/i18n/app_localizations.dart';
 import '../../core/utils/file_size_formatter.dart';
 import '../../domain/entities/installed_program.dart';
 import '../providers/installed_programs_provider.dart';
+import '../widgets/ai_action_button.dart';
 
 class InstalledProgramsScreen extends StatefulWidget {
   const InstalledProgramsScreen({super.key});
@@ -195,6 +197,22 @@ class _ProgramTile extends StatelessWidget {
                     ),
               ),
             const SizedBox(width: 8),
+            if (kIsPro)
+              IconButton(
+                tooltip: 'AI 分析',
+                icon: const Icon(Icons.auto_awesome_outlined),
+                onPressed: () => runAiAnalysis(
+                  context,
+                  intent: 'is_safe_to_uninstall',
+                  title: 'AI 分析：${program.displayName}',
+                  ctx: {
+                    'display_name': program.displayName,
+                    if (program.publisher != null) 'publisher': program.publisher,
+                    if (program.displayVersion != null) 'version': program.displayVersion,
+                    if (program.installLocation != null) 'install_location': program.installLocation,
+                  },
+                ),
+              ),
             FilledButton.tonalIcon(
               onPressed: (program.uninstallString == null)
                   ? null

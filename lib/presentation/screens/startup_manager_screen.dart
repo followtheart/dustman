@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/edition.dart';
 import '../../domain/entities/startup_item.dart';
 import '../providers/startup_provider.dart';
+import '../widgets/ai_action_button.dart';
 
 class StartupManagerScreen extends StatelessWidget {
   const StartupManagerScreen({super.key});
@@ -353,22 +355,45 @@ class _SourceSection extends StatelessWidget {
                     ],
                   ),
                 ),
-                trailing: IconButton(
-                  tooltip: '复制命令',
-                  icon: const Icon(Icons.copy, size: 18),
-                  onPressed: () async {
-                    await Clipboard.setData(
-                      ClipboardData(text: item.command),
-                    );
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('已复制命令'),
-                          duration: Duration(seconds: 1),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (kIsPro)
+                      IconButton(
+                        tooltip: 'AI 分析',
+                        icon: const Icon(Icons.auto_awesome_outlined, size: 18),
+                        onPressed: () => runAiAnalysis(
+                          context,
+                          intent: 'explain_startup_item',
+                          title: 'AI 分析：${item.name}',
+                          ctx: {
+                            'name': item.name,
+                            'command': item.command,
+                            'source': item.source.name,
+                            if (item.targetPath != null) 'target_path': item.targetPath,
+                            if (item.registryFullKeyPath != null)
+                              'registry_key': item.registryFullKeyPath,
+                          },
                         ),
-                      );
-                    }
-                  },
+                      ),
+                    IconButton(
+                      tooltip: '复制命令',
+                      icon: const Icon(Icons.copy, size: 18),
+                      onPressed: () async {
+                        await Clipboard.setData(
+                          ClipboardData(text: item.command),
+                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('已复制命令'),
+                              duration: Duration(seconds: 1),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ),
             ),

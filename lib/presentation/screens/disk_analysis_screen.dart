@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/edition.dart';
 import '../../core/i18n/app_localizations.dart';
 import '../../core/utils/file_size_formatter.dart';
 import '../../domain/entities/disk_node.dart';
 import '../providers/disk_treemap_provider.dart';
+import '../widgets/ai_action_button.dart';
 import '../widgets/treemap_view.dart';
 
 class DiskAnalysisScreen extends StatefulWidget {
@@ -46,6 +48,14 @@ class _DiskAnalysisScreenState extends State<DiskAnalysisScreen> {
                   onPressed: () => _start(provider, t),
                   icon: const Icon(Icons.play_arrow),
                   label: Text(t.t('disk.start')),
+                ),
+              if (kIsPro)
+                IconButton(
+                  tooltip: 'AI 解读当前目录',
+                  icon: const Icon(Icons.auto_awesome_outlined),
+                  onPressed: provider.current == null
+                      ? null
+                      : () => _runAi(context, provider.current!),
                 ),
               const SizedBox(width: 16),
             ],
@@ -175,6 +185,22 @@ class _DiskAnalysisScreenState extends State<DiskAnalysisScreen> {
       return;
     }
     provider.scan(root, maxDepth: _maxDepth);
+  }
+
+  Future<void> _runAi(BuildContext context, DiskNode node) async {
+    final children = (node.children ?? const <DiskNode>[]).take(8).toList();
+    await runAiAnalysis(
+      context,
+      intent: 'summarize_dir',
+      title: 'AI 解读：${node.path.split(r'\').last}',
+      ctx: {
+        'dir': node.path,
+        'top_children': [
+          for (final c in children)
+            {'name': c.path.split(r'\').last, 'size': c.size, 'is_dir': c.isDirectory},
+        ],
+      },
+    );
   }
 }
 
