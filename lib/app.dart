@@ -21,6 +21,7 @@ import 'domain/scanners/junk_scanner.dart';
 import 'domain/scanners/residue_scanner.dart';
 import 'presentation/providers/ai_provider.dart';
 import 'presentation/providers/auth_provider.dart';
+import 'presentation/providers/billing_provider.dart';
 import 'presentation/providers/disk_treemap_provider.dart';
 import 'presentation/providers/duplicate_provider.dart';
 import 'presentation/providers/installed_programs_provider.dart';
@@ -115,6 +116,9 @@ class DustmanApp extends StatelessWidget {
           // 复用 CloudClient 持有的 accessToken（同一进程内）
           accessTokenProvider: () => client.currentAccessToken ?? '',
         ),
+      ),
+      ChangeNotifierProvider<BillingProvider>(
+        create: (_) => BillingProvider(client),
       ),
     ];
   }

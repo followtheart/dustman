@@ -6,6 +6,7 @@ import '../../core/i18n/app_localizations.dart';
 import '../providers/schedule_provider.dart';
 import '../widgets/sidebar_nav.dart';
 import 'account_screen.dart';
+import 'membership_screen.dart';
 import 'disk_analysis_screen.dart';
 import 'duplicate_files_screen.dart';
 import 'installed_programs_screen.dart';
@@ -116,6 +117,12 @@ class _HomeScreenState extends State<HomeScreen> {
           selectedIcon: Icons.account_circle,
           label: t.t('nav.account'),
         ),
+      if (kIsPro)
+        NavDestinationItem(
+          icon: Icons.workspace_premium_outlined,
+          selectedIcon: Icons.workspace_premium,
+          label: t.t('nav.membership'),
+        ),
       NavDestinationItem(
         icon: Icons.settings_outlined,
         selectedIcon: Icons.settings,
@@ -132,6 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
       const DiskAnalysisScreen(),
       const InstalledProgramsScreen(),
       if (kIsPro) const AccountScreen(),
+      if (kIsPro) const MembershipScreen(),
       const SettingsScreen(),
     ];
 

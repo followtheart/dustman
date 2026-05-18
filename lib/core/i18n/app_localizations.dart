@@ -33,6 +33,7 @@ class AppLocalizations {
     'nav.disk': {'zh': '磁盘分析', 'en': 'Disk Map'},
     'nav.programs': {'zh': '已安装程序', 'en': 'Programs'},
     'nav.account': {'zh': '账户', 'en': 'Account'},
+    'nav.membership': {'zh': '会员', 'en': 'Membership'},
     'nav.settings': {'zh': '设置', 'en': 'Settings'},
 
     // 磁盘分析

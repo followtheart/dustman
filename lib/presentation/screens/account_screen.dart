@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../data/fileclaw/dto.dart';
 import '../providers/auth_provider.dart';
 
 /// FileClaw 账户页：未登录态承载登录 / 注册 / 短信 OTP / 找回密码四模；
@@ -105,6 +106,8 @@ class _AuthenticatedView extends StatelessWidget {
               const Divider(height: 32),
               if (profile.email != null) _IdentityRow(label: '邮箱', value: profile.email!),
               if (profile.phone != null) _IdentityRow(label: '手机号', value: profile.phone!),
+              const SizedBox(height: 16),
+              _PlanRow(profile: profile),
               const SizedBox(height: 24),
               Align(
                 alignment: Alignment.centerRight,
@@ -138,6 +141,49 @@ class _IdentityRow extends StatelessWidget {
           Expanded(child: Text(value, style: const TextStyle(fontFamily: 'monospace'))),
         ],
       ),
+    );
+  }
+}
+
+class _PlanRow extends StatelessWidget {
+  const _PlanRow({required this.profile});
+  final MeProfile profile;
+
+  @override
+  Widget build(BuildContext context) {
+    final ratio = profile.quotaAllowance == 0
+        ? 0.0
+        : (profile.quotaUsed / profile.quotaAllowance).clamp(0.0, 1.0);
+    final plan = switch (profile.subscriptionPlan) {
+      'monthly' => 'Pro 月付',
+      'annual' => 'Pro 年付',
+      _ => '免费',
+    };
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const SizedBox(width: 64, child: Text('套餐')),
+            Expanded(child: Text(plan)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.only(left: 64),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              LinearProgressIndicator(value: ratio),
+              const SizedBox(height: 4),
+              Text(
+                '${profile.quotaRemaining} / ${profile.quotaAllowance} tokens 可用',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

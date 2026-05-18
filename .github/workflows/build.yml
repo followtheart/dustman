@@ -71,8 +71,11 @@ jobs:
             'auth_store','AuthStore','AuthRepository',
             'AccountScreen','AuthProvider',
             'AiProvider','AiSessionClient','ToolRegistry','AiAnalysisPanel',
+            'BillingProvider','MembershipScreen','SkuInfo','OrderInfo',
+            'QrImageView','qr_flutter',
             'regmcp.read_key','regmcp.read_values',
-            '/auth/register','/auth/sms/login','/ai/sessions',
+            '/auth/register','/auth/sms/login',
+            '/ai/sessions','/billing/skus','/billing/orders',
             'analyze_registry_residue',
             'CryptProtectData','CryptUnprotectData',
             'TokenPair','MeProfile'

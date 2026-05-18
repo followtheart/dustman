@@ -32,6 +32,8 @@ dependencies:
 
   # FileClaw（Pro）：与 dustman-cloud 通信。社区版编译期 tree-shake 不会引用。
   http: ^1.2.0
+  # 仅 Pro 用于会员页二维码渲染
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:
