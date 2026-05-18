@@ -55,22 +55,34 @@ jobs:
       - name: Build Windows release (${{ matrix.edition }})
         run: flutter build windows --release --dart-define=DUSTMAN_EDITION=${{ matrix.edition }}
 
-      # 验收 §10.5.2：Community 版二进制中不应包含 fileclaw 字样。
-      # M0 期没有 FileClaw 代码所以恒通过；M2 接入云客户端后才有意义。
+      # 验收 §10.5.2：Community 版二进制中不应包含 fileclaw 相关字串。
+      # 真正的 Dart AOT 产物在 data/app.so，runner.exe 只是 C++ 启动器。
+      # M2 本地验证过 12/12 字串全部缺席（详见 commit 84c3799）。
       - name: Verify community has no FileClaw symbols
         if: matrix.edition == 'community'
         shell: pwsh
         run: |
-          $exe = "build\windows\x64\runner\Release\dustman.exe"
-          $bytes = [System.IO.File]::ReadAllBytes($exe)
+          $app = "build\windows\x64\runner\Release\data\app.so"
+          if (-not (Test-Path $app)) { throw "FAIL: $app missing" }
+          $bytes = [System.IO.File]::ReadAllBytes($app)
           $text  = [System.Text.Encoding]::ASCII.GetString($bytes)
-          $needles = @('fileclaw', 'FileClaw', 'cloud_client', 'auth_store')
+          $needles = @(
+            'fileclaw','FileClaw','cloud_client','CloudClient',
+            'auth_store','AuthStore','AuthRepository',
+            'AccountScreen','AuthProvider',
+            '/auth/register','/auth/sms/login',
+            'CryptProtectData','CryptUnprotectData',
+            'TokenPair','MeProfile'
+          )
+          $bad = @()
           foreach ($n in $needles) {
-            if ($text -like "*$n*") {
-              throw "FAIL: community build contains symbol '$n'"
-            }
+            if ($text -like "*$n*") { $bad += $n }
           }
-          Write-Host "OK: community build is FileClaw-free."
+          if ($bad.Count -gt 0) {
+            throw "FAIL: community build contains: $($bad -join ', ')"
+          }
+          $sizeMb = [math]::Round((Get-Item $app).Length / 1MB, 2)
+          Write-Host "OK: community app.so ($sizeMb MB) is FileClaw-free."
 
       - name: Stage release artifacts
         shell: pwsh
