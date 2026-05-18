@@ -73,10 +73,15 @@ jobs:
             'AiProvider','AiSessionClient','ToolRegistry','AiAnalysisPanel',
             'BillingProvider','MembershipScreen','SkuInfo','OrderInfo',
             'QrImageView','qr_flutter',
+            'FileClawLogger','runAiAnalysis','AiSparkleButton',
+            'registerFileMcpTools','registerProcMcpTools',
             'regmcp.read_key','regmcp.read_values',
+            'filemcp.safe_delete','procmcp.list_startup_items',
             '/auth/register','/auth/sms/login',
             '/ai/sessions','/billing/skus','/billing/orders',
-            'analyze_registry_residue',
+            'analyze_registry_residue','explain_startup_item',
+            'classify_large_file','pick_dup_to_delete',
+            'summarize_dir','is_safe_to_uninstall',
             'CryptProtectData','CryptUnprotectData',
             'TokenPair','MeProfile'
           )
