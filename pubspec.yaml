@@ -30,6 +30,9 @@ dependencies:
   # 窗口控制（最小尺寸、记忆位置）
   window_manager: ^0.4.2
 
+  # FileClaw（Pro）：与 dustman-cloud 通信。社区版编译期 tree-shake 不会引用。
+  http: ^1.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

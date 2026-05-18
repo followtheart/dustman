@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/edition.dart';
 import '../../core/i18n/app_localizations.dart';
 import '../providers/schedule_provider.dart';
 import '../widgets/sidebar_nav.dart';
+import 'account_screen.dart';
 import 'disk_analysis_screen.dart';
 import 'duplicate_files_screen.dart';
 import 'installed_programs_screen.dart';
@@ -108,6 +110,12 @@ class _HomeScreenState extends State<HomeScreen> {
         selectedIcon: Icons.inventory_2,
         label: t.t('nav.programs'),
       ),
+      if (kIsPro)
+        NavDestinationItem(
+          icon: Icons.account_circle_outlined,
+          selectedIcon: Icons.account_circle,
+          label: t.t('nav.account'),
+        ),
       NavDestinationItem(
         icon: Icons.settings_outlined,
         selectedIcon: Icons.settings,
@@ -123,6 +131,7 @@ class _HomeScreenState extends State<HomeScreen> {
       const StartupManagerScreen(),
       const DiskAnalysisScreen(),
       const InstalledProgramsScreen(),
+      if (kIsPro) const AccountScreen(),
       const SettingsScreen(),
     ];
 

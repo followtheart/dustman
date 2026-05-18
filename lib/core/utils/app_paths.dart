@@ -42,6 +42,9 @@ class AppPaths {
   /// 计划任务状态 JSON 文件路径。
   static String scheduleStateFile() => p.join(dataDir, 'schedule.json');
 
+  /// FileClaw 认证文件（DPAPI 加密的 refresh_token）。仅 Pro 版用到。
+  static String authFile() => p.join(dataDir, 'auth.bin');
+
   static void _initSync() {
     _initialized = true;
     final exeDir = _executableDirectory();
