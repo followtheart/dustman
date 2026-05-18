@@ -7,6 +7,7 @@ import 'core/theme/app_theme.dart';
 import 'data/fileclaw/auth_repository.dart';
 import 'data/fileclaw/auth_store.dart';
 import 'data/fileclaw/cloud_client.dart';
+import 'data/fileclaw/tool_runtime/regmcp_tools.dart';
 import 'data/scanners/browser_cache_scanner.dart';
 import 'data/scanners/dead_shortcut_scanner.dart';
 import 'data/scanners/dns_cache_scanner.dart';
@@ -18,6 +19,7 @@ import 'data/scanners/thumbnail_cache_scanner.dart';
 import 'data/scanners/windows_logs_scanner.dart';
 import 'domain/scanners/junk_scanner.dart';
 import 'domain/scanners/residue_scanner.dart';
+import 'presentation/providers/ai_provider.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/providers/disk_treemap_provider.dart';
 import 'presentation/providers/duplicate_provider.dart';
@@ -72,17 +74,9 @@ class DustmanApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => StartupProvider()),
         ChangeNotifierProvider(create: (_) => DiskTreemapProvider()),
         ChangeNotifierProvider(create: (_) => InstalledProgramsProvider()),
-        // 仅 Pro 版装配 AuthProvider。kIsPro 是编译期常量，Community 构建会被
-        // Dart AOT 树摇剔除整个 if 分支与所依赖的 CloudClient/AuthStore/Repository。
-        if (kIsPro)
-          ChangeNotifierProvider(
-            create: (_) {
-              final client = CloudClient(baseUrl: _kFileClawBaseUrl);
-              final store = AuthStore();
-              final repo = AuthRepository(client: client, store: store);
-              return AuthProvider(repo)..bootstrap();
-            },
-          ),
+        // 仅 Pro 版装配 FileClaw 相关 Provider。kIsPro 是编译期常量，
+        // Community 构建会被 Dart AOT 树摇剔除整个 if 分支。
+        if (kIsPro) ..._proProviders(),
       ],
       child: Consumer2<ThemeProvider, LocaleProvider>(
         builder: (context, themeProvider, localeProvider, _) {
@@ -101,5 +95,27 @@ class DustmanApp extends StatelessWidget {
         },
       ),
     );
+  }
+
+  /// 仅 Pro 构建调用。装配 FileClaw 所有 Provider，并把 regmcp 工具注册到全局表。
+  List<ChangeNotifierProvider> _proProviders() {
+    final client = CloudClient(baseUrl: _kFileClawBaseUrl);
+    final store = AuthStore();
+    final repo = AuthRepository(client: client, store: store);
+    final authProvider = AuthProvider(repo)..bootstrap();
+
+    // 注册端侧只读工具。重复调用幂等。
+    registerRegMcpTools();
+
+    return [
+      ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+      ChangeNotifierProvider<AiProvider>(
+        create: (_) => AiProvider(
+          baseUrl: _kFileClawBaseUrl,
+          // 复用 CloudClient 持有的 accessToken（同一进程内）
+          accessTokenProvider: () => client.currentAccessToken ?? '',
+        ),
+      ),
+    ];
   }
 }

@@ -1,10 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/edition.dart';
 import '../../core/utils/file_size_formatter.dart';
 import '../../domain/entities/residue_item.dart';
+import '../providers/ai_provider.dart';
 import '../providers/residue_provider.dart';
+import '../widgets/ai_analysis_panel.dart';
 import '../widgets/residue_item_tile.dart';
+
+/// 触发对一条注册表残留的 AI 分析。仅 Pro 分支会调到。
+Future<void> _runAiAnalysis(BuildContext context, ResidueItem item) async {
+  final ai = context.read<AiProvider>();
+  await ai.start(
+    intent: 'analyze_registry_residue',
+    ctx: {
+      'key': item.path,
+      'name': item.name,
+      'reason': item.reason,
+      if (item.evidence.isNotEmpty) 'evidence': item.evidence,
+    },
+  );
+  if (!context.mounted) return;
+  await AiAnalysisPanel.show(context, title: 'AI 分析：${item.name}');
+}
 
 class UninstallResidueScreen extends StatelessWidget {
   const UninstallResidueScreen({super.key});
@@ -388,6 +407,11 @@ class _KindList extends StatelessWidget {
                 selected: provider.isSelected(item.id),
                 onToggle: (v) => provider.toggleItem(item.id, v),
                 onRemove: () => provider.removeItem(item.id),
+                // 仅 Pro 版传 onAnalyze。kIsPro 是编译期常量，
+                // Community 构建下整条分支会被 tree-shake。
+                onAnalyze: kIsPro && item.kind == ResidueKind.registryKey
+                    ? () => _runAiAnalysis(context, item)
+                    : null,
               );
             },
           ),

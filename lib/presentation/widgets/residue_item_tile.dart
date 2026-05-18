@@ -12,12 +12,16 @@ class ResidueItemTile extends StatelessWidget {
     required this.selected,
     required this.onToggle,
     required this.onRemove,
+    this.onAnalyze,
   });
 
   final ResidueItem item;
   final bool selected;
   final ValueChanged<bool?> onToggle;
   final VoidCallback onRemove;
+
+  /// 仅 Pro 版传入；为 null 时不渲染 ✦ 按钮。
+  final VoidCallback? onAnalyze;
 
   @override
   Widget build(BuildContext context) {
@@ -76,6 +80,14 @@ class ResidueItemTile extends StatelessWidget {
                   ConfidenceChip(confidence: item.confidence),
                 ],
               ),
+              if (onAnalyze != null) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  tooltip: 'AI 分析',
+                  icon: const Icon(Icons.auto_awesome_outlined),
+                  onPressed: onAnalyze,
+                ),
+              ],
               const SizedBox(width: 4),
               PopupMenuButton<_TileAction>(
                 tooltip: '更多',

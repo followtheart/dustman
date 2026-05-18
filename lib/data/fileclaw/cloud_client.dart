@@ -26,6 +26,9 @@ class CloudClient {
 
   String? _accessToken;
 
+  /// 只读暴露给 AiSession 复用同一个 access_token，避免双轨刷新。
+  String? get currentAccessToken => _accessToken;
+
   void setAccessToken(String? token) {
     _accessToken = token;
   }
