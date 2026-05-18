@@ -68,6 +68,27 @@ flutter build windows --release
 
 发布产物默认位于 `build\windows\x64\runner\Release\`。
 
+## 发行版次（v0.4+）
+
+从 v0.4 起 Dustman 分两个发行版次：
+
+| 版次 | 包含能力 | 适用场景 |
+|---|---|---|
+| **Community** | v0.3 全部清理 / 扫描 / TreeMap / CLI / 绿色版 | 默认不联网、无注册、可审计 |
+| **Pro** | Community 全部 + FileClaw AI 操作建议、账户 / 会员 | 愿意联网使用 AI 辅助分析 |
+
+构建命令通过 `--dart-define` 选择版次（编译期常量，会触发 tree-shaking）：
+
+```powershell
+# 社区版（默认）
+flutter build windows --release --dart-define=DUSTMAN_EDITION=community
+
+# 付费版
+flutter build windows --release --dart-define=DUSTMAN_EDITION=pro
+```
+
+设计细节见 [docs/V0_4_PLAN.md](docs/V0_4_PLAN.md) §10.5。
+
 ## 命令行模式
 
 Dustman 启动时会先判断是否为 CLI 子命令；如果匹配，则直接执行并退出，不弹出 GUI。

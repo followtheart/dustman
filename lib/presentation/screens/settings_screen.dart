@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/edition.dart';
 import '../../core/i18n/app_localizations.dart';
 import '../../core/utils/app_paths.dart';
 import '../providers/locale_provider.dart';
@@ -173,7 +174,7 @@ class SettingsScreen extends StatelessWidget {
             child: ListTile(
               title: Text(t.t('settings.about')),
               subtitle: Text(
-                '${AppConstants.appName} v${AppConstants.appVersion}\n'
+                '${AppConstants.appName} v${AppConstants.appVersion} (${kEdition.label})\n'
                 '一个安全、可视化的 Windows 桌面清理工具。',
               ),
               isThreeLine: true,

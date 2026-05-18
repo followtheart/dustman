@@ -1,0 +1,87 @@
+# Dustman Windows 双版本构建。
+#
+# 设计来源：docs/V0_4_PLAN.md §10.5.3。
+# 在每次推送 main / 打 tag / 手动触发时，矩阵并行产出 Community 与 Pro
+# 两套 Windows release 二进制。Pull Request 仅跑 analyze + test。
+#
+# 版次差异通过 --dart-define=DUSTMAN_EDITION 编译期常量驱动；
+# Community 构建会通过 tree-shaking 剔除所有 FileClaw 代码（待 M2+ 接入）。
+
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: analyze + test
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter --version
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  build:
+    # 仅在推送到 main / 打 tag / 手动触发时产出二进制；PR 上不必跑。
+    if: github.event_name != 'pull_request'
+    needs: analyze
+    runs-on: windows-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        edition: [community, pro]
+    name: build (${{ matrix.edition }})
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - name: Build Windows release (${{ matrix.edition }})
+        run: flutter build windows --release --dart-define=DUSTMAN_EDITION=${{ matrix.edition }}
+
+      # 验收 §10.5.2：Community 版二进制中不应包含 fileclaw 字样。
+      # M0 期没有 FileClaw 代码所以恒通过；M2 接入云客户端后才有意义。
+      - name: Verify community has no FileClaw symbols
+        if: matrix.edition == 'community'
+        shell: pwsh
+        run: |
+          $exe = "build\windows\x64\runner\Release\dustman.exe"
+          $bytes = [System.IO.File]::ReadAllBytes($exe)
+          $text  = [System.Text.Encoding]::ASCII.GetString($bytes)
+          $needles = @('fileclaw', 'FileClaw', 'cloud_client', 'auth_store')
+          foreach ($n in $needles) {
+            if ($text -like "*$n*") {
+              throw "FAIL: community build contains symbol '$n'"
+            }
+          }
+          Write-Host "OK: community build is FileClaw-free."
+
+      - name: Stage release artifacts
+        shell: pwsh
+        run: |
+          $stage = "dist\dustman-${{ matrix.edition }}"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item -Recurse build\windows\x64\runner\Release\* $stage\
+          Get-ChildItem $stage | Select-Object Name, Length
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dustman-${{ matrix.edition }}-windows-x64
+          path: dist/dustman-${{ matrix.edition }}/
+          retention-days: 14

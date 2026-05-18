@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import '../core/constants/app_constants.dart';
+import '../core/edition.dart';
 import '../core/utils/app_paths.dart';
 import '../core/utils/file_size_formatter.dart';
 import '../data/scanners/browser_cache_scanner.dart';
@@ -30,7 +32,7 @@ Future<int?> tryRunCli(List<String> args) async {
     return _runClean(args.skip(1).toList());
   }
   if (cmd == '--version' || cmd == '-v' || cmd == 'version') {
-    stdout.writeln('dustman 0.3.0');
+    stdout.writeln('dustman ${AppConstants.appVersion} (${kEdition.label})');
     return 0;
   }
   // 没匹配到任何 CLI 子命令 → 当作 GUI 启动忽略
