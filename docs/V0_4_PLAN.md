@@ -120,23 +120,38 @@
 
 ### 3.2 用户认证模块
 
-#### 3.2.1 注册流程
-- 邮箱 + 密码注册，邮件验证码 6 位、5 分钟有效；
+#### 3.2.1 身份模型
+- **双轨身份**：一个账户可以同时绑定邮箱（EmailStr）与手机号（中国大陆 E.164：+86 开头 11 位）；
+- 注册时二选一即可；可登录后在账户页继续绑定另一个；
+- 数据库层 `users.email` / `users.phone` 都可空但唯一，CHECK 约束保证至少一个非空；
+- 解绑前最后一个身份不可移除。
+
+#### 3.2.2 注册流程
+- 邮箱 / 手机号 + 密码注册，6 位数字验证码、5 分钟有效（手机号优先发短信，邮箱发邮件）；
 - 密码用 Argon2id 哈希（不要 bcrypt，参数：m=64MB, t=3, p=4）；
 - 注册成功送 **N 免费 token**（建议 50k，约一次中等分析的额度）用于试用；
 - 端侧注册入口：账户页内嵌注册表单，不跳浏览器，避免 OAuth redirect 在桌面端的别扭体验。
 
-#### 3.2.2 登录流程
-- 用户名/邮箱 + 密码 → 返回 access_token + refresh_token；
-- access_token 放内存，refresh_token 用 Windows DPAPI 加密后落
-  `<AppData>\Dustman\auth.bin`（绿色版落 `<exe_dir>\data\auth.bin`）；
-- 端侧自动续期：access 过期 → 静默用 refresh 换新；refresh 过期 → 提示重新登录。
+#### 3.2.3 登录流程
+两种模式并存：
+- **密码登录**：`identifier`（邮箱或手机号） + 密码 → access + refresh；
+- **短信 OTP 登录**：手机号 → 请求短信码 → 提交码 → access + refresh；
+  适配"忘记密码"场景，也是更习惯的移动端心智。
 
-#### 3.2.3 找回密码
-- 输入注册邮箱 → 发送 6 位数字验证码 → 验证通过后允许重置；
+access_token 放内存，refresh_token 用 Windows DPAPI 加密后落
+`<AppData>\Dustman\auth.bin`（绿色版落 `<exe_dir>\data\auth.bin`）；
+端侧自动续期：access 过期 → 静默用 refresh 换新；refresh 过期 → 提示重新登录。
+
+#### 3.2.4 找回密码
+- 输入注册邮箱或手机号 → 发送 6 位数字验证码（按身份类型走邮件 / 短信）→ 验证通过后允许重置；
 - 重置后**吊销所有 refresh_token**，强制其他设备重新登录。
 
-#### 3.2.4 会员开通（二维码支付）
+#### 3.2.5 短信通道
+- 服务商：阿里云 dysmsapi（v0.4）；
+- 未配置时（dev / 自部署）服务端把验证码打到日志，便于本地联调；
+- 短信发送失败不阻断业务，记日志后照常返回（防止用户因短信问题被锁死）。
+
+#### 3.2.6 会员开通（二维码支付）
 - 端侧点"开通会员" → 调云侧 `POST /billing/orders` 创建订单 →
   云侧返回 `qrcode_url`（指向二维码图片或 base64）→ 端侧弹窗显示二维码；
 - 端侧打开 SSE `/billing/orders/{id}/events` 监听支付状态变化；
@@ -214,9 +229,9 @@ LangGraph 的 ToolNode 不直接执行，而是把 `ToolCall` 序列化通过 SS
 
 | 表 | 关键字段 |
 |---|---|
-| `users` | id, email(unique), password_hash, created_at, email_verified_at, status |
+| `users` | id, email(unique nullable), phone(E.164 unique nullable, CHECK 至少一个非空), password_hash, created_at, email_verified_at, status |
 | `refresh_tokens` | id, user_id, token_hash, device_label, revoked_at, expires_at |
-| `email_codes` | email, code_hash, purpose(register/reset), expires_at, used_at |
+| `verification_codes` | target(email 或 phone), channel(email/sms), purpose(register/reset/login), code_hash, expires_at, used_at |
 | `orders` | id, user_id, sku, amount, currency, status, paid_at, provider_txn_id |
 | `subscriptions` | user_id, plan, current_period_start/end, auto_renew, canceled_at |
 | `user_quota` | user_id, period(YYYY-MM), allowance, used, reset_at |
@@ -232,14 +247,19 @@ LangGraph 的 ToolNode 不直接执行，而是把 `ToolCall` 序列化通过 SS
 
 | Method | Path | 说明 |
 |---|---|---|
-| POST | `/auth/register` | 邮箱注册，返回 verify 待处理 |
-| POST | `/auth/verify-email` | 提交验证码激活 |
-| POST | `/auth/login` | 返回 access + refresh |
+| POST | `/auth/register` | 邮箱或手机号 + 密码注册，返回 verify 待处理 |
+| POST | `/auth/verify` | 提交验证码激活（邮箱或手机号统一入口） |
+| POST | `/auth/login` | identifier(邮箱或手机) + 密码 |
+| POST | `/auth/sms/request` | 请求短信验证码（register/login/reset） |
+| POST | `/auth/sms/login` | 手机号 + 验证码 → tokens（OTP 免密登录） |
 | POST | `/auth/refresh` | refresh → 新 access |
 | POST | `/auth/logout` | 吊销当前 refresh |
-| POST | `/auth/password/forgot` | 发送重置验证码 |
-| POST | `/auth/password/reset` | 凭验证码重置 |
-| GET  | `/me` | 当前用户 + 会员 + 余额 |
+| POST | `/auth/password/forgot` | identifier → 按身份类型发邮件 / 短信 |
+| POST | `/auth/password/reset` | identifier + 码 + 新密码 |
+| GET  | `/auth/me` | 当前用户（含 email + phone 双字段） |
+| POST | `/auth/me/bindings/request` | 已登录用户请求绑定第二身份 |
+| POST | `/auth/me/bindings/confirm` | 凭码完成绑定 |
+| DELETE | `/auth/me/bindings/{kind}` | 解绑 email 或 phone（至少留一个） |
 | POST | `/billing/orders` | 创建订单，返回 qrcode |
 | GET  | `/billing/orders/{id}` (SSE) | 监听订单状态 |
 | POST | `/billing/webhook/{provider}` | 第三方支付回调 |
