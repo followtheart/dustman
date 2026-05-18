@@ -89,6 +89,62 @@ flutter build windows --release --dart-define=DUSTMAN_EDITION=pro
 
 设计细节见 [docs/V0_4_PLAN.md](docs/V0_4_PLAN.md) §10.5。
 
+## Pro 版使用（v0.4）
+
+> 仅 Pro 二进制包含以下能力，并需要配合 [dustman-cloud](../dustman-cloud/) 后端。
+
+### 配置云端地址
+
+启动时通过编译期常量指定云端 base URL，默认 `http://localhost:8000`：
+
+```powershell
+flutter build windows --release `
+  --dart-define=DUSTMAN_EDITION=pro `
+  --dart-define=DUSTMAN_CLOUD_URL=https://api.dustman.example.com
+```
+
+### 账户
+
+侧栏「账户」页支持四种模式（顶部 SegmentedButton 切换）：
+
+- **密码登录**：邮箱或手机号 + 密码
+- **短信登录**：手机号 + 6 位验证码（OTP 免密）
+- **注册**：邮箱或手机号 + 密码 → 收验证码 → 提交激活；激活同事务赠送 50,000 token
+- **找回**：邮箱或手机号 → 收验证码 → 设新密码（自动吊销所有设备 refresh token）
+
+登录态：`refresh_token` 用 Windows DPAPI 加密落到 `<AppData>\Dustman\auth.bin`（绿色版落 `<exe_dir>\data\auth.bin`），跨用户 / 跨机器无法解。`access_token` 仅在进程内存。
+
+### AI 分析（✦）
+
+6 个功能页都在 Pro 版加了 ✦ 图标，点击会启动一次云侧 AI 会话：
+
+| 页面 | 入口 | 意图 |
+|---|---|---|
+| 卸载残留 | 每行 ✦ | 解释注册表 / 文件残留是否安全删除 |
+| 启动项 | 每行 ✦ | 解释启动项归属与禁用影响 |
+| 已安装程序 | 每行 ✦ | 判断是否安全卸载（驱动 / 运行库识别） |
+| 大文件 | AppBar ✦ | 文件分类与清理建议 |
+| 重复文件 | AppBar ✦ | 同 hash 组里挑哪个删 |
+| 磁盘分析 | AppBar ✦ | 当前目录摘要 + 清理潜力 |
+
+AI 不会自动删除任何文件。涉及写操作的工具会弹出端侧二次确认对话框，**拒绝 / 关闭都视为不执行**。`SafetyGuard` 黑名单（System32 / 用户 Documents 等）始终是硬拦截，AI 即便通过 consent 也无法删除受保护路径。
+
+所有 AI 工具调用都会写一行 JSON 到本地审计日志 `<AppData>\Dustman\logs\fileclaw-YYYY-MM-DD.log`，便于事后追溯。
+
+### 会员
+
+侧栏「会员」页展示当前订阅、余额、SKU 套餐卡片。点「立即开通」弹二维码扫码窗口（微信 / 支付宝），SSE 实时监听订单状态：
+
+- **Stub 模式**（云侧未配置 AK/SK）：订单创建 5 秒后自动 paid，方便联调
+- **生产模式**：扫码支付 → 第三方异步通知云侧 → SSE 推送 → 弹窗自动关闭并刷 `/me`
+
+v0.4 测试期所有 SKU 统一 **¥0.01**，仅用于验证支付通路与付费意愿。
+
+### 离线降级
+
+- 云端 `/health` 失败 → AccountScreen 显示「正在恢复会话」直至超时；其它页面完全不受影响（v0.3 全部能力照常使用）
+- access_token 过期 → 后台静默用 refresh 换新；refresh 过期或被吊销 → 自动登出，UI 提示重新登录
+
 ## 命令行模式
 
 Dustman 启动时会先判断是否为 CLI 子命令；如果匹配，则直接执行并退出，不弹出 GUI。

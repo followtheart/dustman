@@ -383,47 +383,67 @@ lib/
 
 > 建议把 v0.4 拆为 **v0.4.0-alpha**（云侧骨架 + 登录） → **v0.4.0-beta**（AI 注册表分析单点） → **v0.4.0** （全量入口 + 付费）。
 
-### M1 云侧骨架 (alpha) — 约 2 周
-- [ ] 仓库初始化 `dustman-cloud`，FastAPI + PostgreSQL + Redis docker-compose
-- [ ] users / refresh_tokens / email_codes 表 + 迁移工具（alembic）
-- [ ] `/auth/*` 全套接口 + 邮件验证码（先用 SMTP 占位）
-- [ ] JWT 中间件 + 限流中间件
-- [ ] OpenAPI 文档可访问 `/docs`
+### M0 端侧编译期开关（完成）
+- [x] `lib/core/edition.dart` + 编译期 `DUSTMAN_EDITION`
+- [x] GitHub Actions 双版本矩阵 + Community strings 验证
 
-### M2 端侧账户 (alpha) — 约 1 周
-- [ ] `CloudClient` + `AuthStore`（DPAPI）
-- [ ] AccountScreen 登录 / 注册 / 找回密码
-- [ ] 侧栏接入登录状态显示
-- [ ] 离线检测 + 降级
+### M1 云侧骨架（完成）
+- [x] 仓库初始化 `dustman-cloud`，FastAPI + PostgreSQL + Redis docker-compose
+- [x] users / refresh_tokens / verification_codes 表 + alembic 0001+0002
+- [x] `/auth/*` 全套接口（含手机号 / SMS OTP / 第二身份绑定）
+- [x] JWT 中间件 + slowapi 限流
+- [x] OpenAPI 文档 `/docs`
 
-### M3 AI 编排骨架 (beta) — 约 2 周
-- [ ] LangGraph 状态机 + ReAct 节点
-- [ ] `/ai/sessions` + SSE
-- [ ] 工具协议序列化 / 反序列化
-- [ ] 端侧 `ToolRuntime` + `regmcp.read_key` / `read_values` 两个只读工具
-- [ ] UninstallResidueScreen 接入 ✦ 按钮 + AnalysisPanel UI
+### M1.5 手机号双轨身份（完成，超出原计划）
+- [x] 0002 迁移：users.phone + verification_codes 重构 + login purpose
+- [x] 手机号 E.164 归一化
+- [x] 阿里云短信 SDK 适配器 + stdout 降级
+- [x] /auth/sms/request + /auth/sms/login
 
-### M4 计费 — 约 1.5 周
-- [ ] orders / subscriptions / user_quota 表
-- [ ] 微信 Native + 支付宝当面付接入
-- [ ] `/billing/*` + webhook
-- [ ] MembershipScreen 二维码 + SSE 监听
-- [ ] token 计量 LangGraph hook + 配额校验
+### M2 端侧账户（完成）
+- [x] `CloudClient` + `AuthStore`（DPAPI）+ `AuthRepository`
+- [x] AccountScreen 四模（密码登录 / 短信 OTP / 注册 / 找回）
+- [x] 侧栏接入登录状态显示
+- [x] 离线检测 + 降级
+- [x] 验收：Community 6.25 MB / Pro 6.69 MB，FileClaw 字串 0/12 缺席 / 12/12 出现
 
-### M5 全量 AI 入口 — 约 1.5 周
-- [ ] filemcp / procmcp 工具实现
-- [ ] 6 个 AI 入口接入（§4.2 表格）
-- [ ] AI 写操作（`safe_delete` / `disable_startup_item`）+ 端侧二次确认
-- [ ] 端侧 fileclaw 日志
+### M3 AI 编排骨架（完成）
+- [x] ReAct 循环（自研而非 LangGraph，更适合 SSE 工具协议）
+- [x] `/ai/sessions` + SSE + tool-result + abort
+- [x] 工具协议事件帧 6 类（hello / usage / tool_call / final / error / close）
+- [x] 端侧 `ToolRuntime` + `regmcp.read_key` / `read_values`
+- [x] UninstallResidueScreen 接入 ✦
+- [x] LLM Provider 抽象 + Stub + Anthropic 适配器
 
-### M6 双版本构建与发布 — 约 1 周
-- [ ] `lib/core/edition.dart` + 编译期 `--dart-define=DUSTMAN_EDITION`
-- [ ] GitHub Actions 矩阵：同时产出 Community / Pro 两套二进制 + MSIX
-- [ ] 验证社区版二进制中**确实不含**任何 fileclaw / billing / 云端 endpoint 字符串
-  （`strings dustman.exe | grep -i fileclaw` 应为空）
-- [ ] 安全自查（§6 全项）
-- [ ] 文档：用户使用说明 + 自部署说明 + 版本对照
-- [ ] 灰度：先放 100 名内测用户用 Pro 版，跑 1 周再公开发布两个版本
+### M4 计费（完成）
+- [x] orders / subscriptions / user_quota / token_usage 表（alembic 0003）
+- [x] SKU 目录 + 订单状态机 service
+- [x] `/billing/*` + webhook（M4 阶段 stub 实现）
+- [x] MembershipScreen 二维码 + SSE 订单监听
+- [x] token 计量 on_finish hook + 配额校验
+
+### M4.5 真实支付 SDK 接入（完成，超出原计划）
+- [x] 微信 Native v3 适配器 + APIv3 加密 callback 验签
+- [x] 支付宝当面付适配器 + RSA2 验签
+- [x] webhook 按 provider 分发强制验签
+- [x] 未配置 AK/SK 时回退 Stub
+
+### M5 全量 AI 入口（完成）
+- [x] filemcp（stat / list_dir / read_text_head / safe_delete）
+- [x] procmcp（list_startup_items / disable_startup_item）
+- [x] 6 个 AI 入口全部接入（StartupManager / LargeFile / Duplicate / Disk / InstalledPrograms / UninstallResidue）
+- [x] AI 写操作端侧二次确认 + SafetyGuard 硬拦截（双层）
+- [x] fileclaw 审计日志 `<dataDir>/logs/fileclaw-YYYY-MM-DD.log`
+
+### M6 验收与发布（进行中）
+- [x] 双版本验收（5 次 release build：Community 始终 6.25 MB，37/37 字串缺席；Pro 6.91 MB FileClaw 全部出现）
+- [x] 安全自查 → [SECURITY_AUDIT_V0_4.md](SECURITY_AUDIT_V0_4.md)（P0 项 0 缺；P1/P2 待办清单已列）
+- [x] 文档：[README](../README.md) v0.4 章节 + [DEPLOY.md](../../dustman-cloud/docs/DEPLOY.md) + [RELEASE_V0_4.md](RELEASE_V0_4.md)
+- [ ] 端云手工冒烟（docker compose up + Pro 端点 ✦ 走 stub LLM）
+- [ ] Alpha 内测（5 人 × 3 天）
+- [ ] Beta 灰度（50 人 × 1 周）
+- [ ] Gamma 公测（200 人 × 1 周）
+- [ ] GA 发布
 
 > 累计预估 **9 周** 工程量（单人全栈节奏）。若云侧 / 端侧并行可压缩到 6 周。
 
