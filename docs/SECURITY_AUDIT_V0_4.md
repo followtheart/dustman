@@ -18,8 +18,8 @@
 
 | # | 风险 | 状态 | 详情 |
 |---|---|---|---|
-| X1 | `Settings.jwt_secret` 默认 `dev-only-change-me` | 📝 | 启动期未强制校验非默认；`docker-compose.yml` / `.env.example` 已提示。**生产部署 checklist 必填项** |
-| X2 | Stub 渠道任意人可下单自动 paid | 📝 | StubPaymentClient 由 `provider=stub` 显式触发；生产环境只允许 wechat_native / alipay_face；建议生产配置文件移除 stub 选项（或在路由层用 `if not settings.is_production` 拒绝） |
+| X1 | `Settings.jwt_secret` 默认 `dev-only-change-me` | ✅ | `Settings.assert_production_safety()` 在 lifespan 启动期调用：`app_env=production` 且 `jwt_secret` 仍为默认 / 短于 32 字符 / `FILECLAW_PUBLIC_BASE_URL` 未配置或非 https → 抛 RuntimeError 直接拒绝启动。一次性把所有问题列出来便于一并修复 |
+| X2 | Stub 渠道任意人可下单自动 paid | ✅ | `POST /billing/orders` 路由层在 `is_production` 下对 `provider=stub` 返回 400 `stub provider is disabled in production`，从根上断了生产白嫖 |
 | X3 | 端侧 access_token 通过 `Authorization: Bearer` 头传输 | ✅ | 内存持有，不落盘；refresh 才落 DPAPI 加密文件 |
 | X4 | SSE 不带 `Authorization` 头（浏览器 EventSource 限制） | 📝 | M3 端侧用 `http.send()` 自己解析 SSE，能带 header；当前实现已带 `Authorization: Bearer`；纯浏览器场景未来需走 query string 短 token |
 | X5 | webhook 路由对未知 provider 直接 400 | ✅ | M4.5 已加 |
@@ -41,8 +41,8 @@
 
 按优先级：
 
-1. **P0** Settings 启动期校验：`jwt_secret == 'dev-only-change-me' and app_env == 'production'` → 立刻拒绝启动
-2. **P0** 生产环境禁用 stub 支付：`provider=stub` 在 `app_env=production` 下返回 400
+1. ~~**P0** Settings 启动期校验：`jwt_secret == 'dev-only-change-me' and app_env == 'production'` → 立刻拒绝启动~~ ✅ 已完成
+2. ~~**P0** 生产环境禁用 stub 支付：`provider=stub` 在 `app_env=production` 下返回 400~~ ✅ 已完成
 3. **P1** `/auth/me/devices` 列表 + `/auth/me/devices/{id}/revoke` 吊销其它设备
 4. **P1** webhook IP 白名单（nginx 层）+ 文档说明微信 / 支付宝官方 IP 段
 5. **P2** `/me/export`（JSON 全量导出）+ `/me/delete`（软删除 + 异步硬删除任务，含 30 天 grace 期）
