@@ -70,7 +70,10 @@ jobs:
             'fileclaw','FileClaw','cloud_client','CloudClient',
             'auth_store','AuthStore','AuthRepository',
             'AccountScreen','AuthProvider',
-            '/auth/register','/auth/sms/login',
+            'AiProvider','AiSessionClient','ToolRegistry','AiAnalysisPanel',
+            'regmcp.read_key','regmcp.read_values',
+            '/auth/register','/auth/sms/login','/ai/sessions',
+            'analyze_registry_residue',
             'CryptProtectData','CryptUnprotectData',
             'TokenPair','MeProfile'
           )
